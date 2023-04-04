@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Initializing variables
+sum=0          # Total duration 
+count=0        # Number of files processed
+index=1        # Index for file lines
+prev_durations=()  # Array to store duration of previous 10 files
+
+# Print the header line for ID, Filename, and Duration
+printf "%-8s %-75s %s\n" "ID" "Filename" "Duration"
+echo "---------------------------------------------------------------------------------------------"
+
+# Loop through each file found by the `find` command
+while IFS= read -r -d '' file
+do
+  # Get the duration of the file in milliseconds
+  duration=$(mediainfo "--Inform=General;%Duration%" "$file" | cut -d. -f1)
+  
+  # Add the file duration to the total duration and increment the file count
+  sum=$(( sum + duration ))
+  ((count++))
+  
+  # Get the filename and duration in HH:MM:SS format and print them
+  filename=$(basename "$file")
+  file_duration=$(printf "%02d:%02d:%02d" $((duration/3600000)) $(((duration/60000) % 60)) $(((duration/1000) % 60)))
+  printf "%-5s    %-75s %s\n" "$index." "$filename" "$file_duration"
+  
+  # Add the file duration to the previous duration array
+  prev_durations+=("$duration")
+  
+  # Check if the previous 10 files have been processed
+  if [ $(( count % 10 )) -eq 0 ]; then
+    # Calculate the sum of the previous 10 durations
+    prev_sum=0
+    for prev_duration in "${prev_durations[@]}"
+    do
+      prev_sum=$(( prev_sum + prev_duration ))
+    done
+    
+    # Print a separator and the duration of the previous 10 files in HH:MM:SS format
+    echo "---------------------------------------------------------------------------------------------"
+    printf "Duration of last 10 files: %s\n" $(date -u -d @$(($prev_sum / 1000)) +"%T")
+    echo "---------------------------------------------------------------------------------------------"
+    
+    # Clear the previous duration array for the next 10 files
+    prev_durations=()
+  fi
+  
+  ((index++))
+done < <(find . -type f \( -name "*.mp4" -o -name "*.mkv" \) -print0)
+
+# Check if there are remaining files in the previous duration array
+if [ ${#prev_durations[@]} -gt 0 ]; then
+  # Calculate the sum of the remaining file durations
+  prev_sum=0
+  for prev_duration in "${prev_durations[@]}"
+  do
+    prev_sum=$(( prev_sum + prev_duration ))
+  done
+  
+  # Print a separator and the duration of the remaining files in HH:MM:SS format
+  echo "---------------------------------------------------------------------------------------------"
+  printf "Duration of last 10 files: %s\n" $(date -u -d @$(($prev_sum / 1000)) +"%T")
+  echo "---------------------------------------------------------------------------------------------"
+fi
+
+# Calculate the total duration in HH:MM:SS format
+total_seconds=$((sum/1000)) # Convert total duration to seconds
+hours=$((total_seconds/3600)) # Calculate hours
+minutes=$(((total_seconds%3600)/60)) # Calculate minutes
+seconds=$((total_seconds%60)) # Calculate seconds
+
+# Print the total duration and number of files processed
+printf "\nTotal duration: %02d:%02d:%02d\n" "$hours" "$minutes" "$seconds"
+printf "Files processed: %d\n" "$count"
+

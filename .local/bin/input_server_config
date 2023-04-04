@@ -1,0 +1,2 @@
+#!/bin/bash
+cat /home/so/.local/share/input_files/server_config.txt | xclip -selection clipboard

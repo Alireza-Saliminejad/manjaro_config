@@ -11,6 +11,7 @@ inoremap jk <ESC>
 
 nnoremap <leader>s :source ~/.config/nvim/init.vim<CR>
 nnoremap <leader>wq :VimwikitoHTML<CR>
+nnoremap <leader>v :e ~/.config/nvim/init.vim<CR>
 
 
 call plug#begin()
